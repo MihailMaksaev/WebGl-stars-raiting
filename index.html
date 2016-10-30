@@ -39,7 +39,9 @@
 <script id="shader-vs" type="x-shader/x-vertex">
     attribute vec3 aVertexPosition;
 	attribute vec3 aVertexNormal;
+	
 	attribute vec4 CursorMouseX;
+	
 
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
@@ -65,6 +67,7 @@
             float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);
             vLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting;
 			
+		if(CursorMouseX.y != 1.0){
 			if(gl_Position.x < CursorMouseX.x){
 			
 			vColor = vec4(0.9, 0.9, 0.1, 1.0);
@@ -73,7 +76,19 @@
 			vColor = vec4(0.9, 0.9, 0.9, 1.0);
 			
 			}
+		}else{
+		
+		  if(gl_Position.x < CursorMouseX.z){
 			
+			vColor = vec4(0.9, 0.9, 0.1, 1.0);
+			}else{
+			
+			vColor = vec4(0.9, 0.9, 0.9, 1.0);
+			
+			}
+		  
+		
+		}	
 
     }
 </script>
@@ -102,7 +117,7 @@ var gl;
         gl.useProgram(shaderProgram);
 		// переменная  цвет звезд от -3(все серые) до 3 (цветные)
 		shaderProgram.CursorMouseX = gl.getAttribLocation(shaderProgram, "CursorMouseX");
-		 gl.vertexAttrib1f(shaderProgram.CursorMouseX, 0.0);
+		 gl.vertexAttrib3f(shaderProgram.CursorMouseX, 0.0, 1.0, -3.0);
         // получаем ссылку на атрибут-вектор позиции вершин
         shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
         gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
@@ -332,6 +347,14 @@ var canvas = document.getElementById("canvas");
 var longCanv = parseFloat(getComputedStyle(canvas).width);
 
 var widthConst = 6;
+// старый рейтинг в долях
+var oldRaiting  = 0.5;
+//перевод старого рейтинга в скрол
+var oldNum = oldRaiting*widthConst-(widthConst/2);
+
+var numGlobalClick = 3;
+// округленное значение рейтинга;
+var numFloor;
 
 
 console.log("width "+ longCanv);
@@ -339,6 +362,7 @@ console.log("width "+ longCanv);
 	canvas.addEventListener("mouseover", mouseOnCanvas);
 	canvas.addEventListener("mouseout", mouseOutFromCanvas);
 	canvas.addEventListener("mousemove", mouseMoveOnCanvas);
+	canvas.addEventListener("click", mouseClickOnCanvas);
 	
 	function mouseOnCanvas(e){
 	  
@@ -347,8 +371,13 @@ console.log("width "+ longCanv);
 	}
 	
 	function mouseOutFromCanvas(e){
-	   go = false;
-	    
+	 //  setTimeout(function(){
+	    go = false;
+	   gl.vertexAttrib2f(shaderProgram.CursorMouseX, -3.0, -3.0);
+	   drawScene();
+	   
+	  // }, 500);
+	   
 	}
 	
 	function mouseMoveOnCanvas(e){
@@ -356,11 +385,49 @@ console.log("width "+ longCanv);
 	var mouseCoord = e.pageX - canvas.offsetLeft;
 	
 	var num = parseFloat((parseFloat(mouseCoord)/longCanv*widthConst)-(widthConst/2));
+	numFloor;
+	switch(true){
+				case num < -3.0:
+				numFloor = -3.0;
+				break;
+				case num < -2.0:
+				numFloor = -2.0;
+				break;
+				case num < -0.5:
+				numFloor = -0.5;
+				break;
+				case num < 0.5:
+				numFloor = 0.5;
+				break;
+				case num < 1.5:
+				numFloor = 1.5;
+				break;
+				case num < 3.0:
+				numFloor = 3.0;
+				break;
+				default:
+				num = 1;
+			}
 	
 	//console.log(mouseCoord);
 	
-	gl.vertexAttrib1f(shaderProgram.CursorMouseX, num);
+	gl.vertexAttrib2f(shaderProgram.CursorMouseX, num, 1.0);
+	gl.vertexAttrib3f(shaderProgram.CursorMouseX, num, 1.0, numFloor);
+	}
 	
+    function mouseClickOnCanvas(e){
+	   go = false;
+	   	var dole = 1/numGlobalClick*oldNum;
+			
+	   var newReit = oldNum - dole + 1/numGlobalClick*numFloor;
+	   
+	   
+	gl.vertexAttrib3f(shaderProgram.CursorMouseX, newReit, 0.0, 0.0);   
+	canvas.removeEventListener("mouseover", mouseOnCanvas);
+	canvas.removeEventListener("mouseout", mouseOutFromCanvas);
+	canvas.removeEventListener("mousemove", mouseMoveOnCanvas);
+	 drawScene();
+	    
 	}
 	
 	
