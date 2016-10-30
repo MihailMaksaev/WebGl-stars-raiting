@@ -120,8 +120,23 @@ var gl;
         shaderProgram.directionalColorUniform = gl.getUniformLocation(shaderProgram, "uDirectionalColor");
     }
 	
-	var mvMatrix = mat4.create();
+	
+    var mvMatrix = mat4.create();
+    var mvMatrixStack = [];
     var pMatrix = mat4.create();
+
+    function mvPushMatrix() {
+        var copy = mat4.create();
+        mat4.set(mvMatrix, copy);
+        mvMatrixStack.push(copy);
+    }
+
+    function mvPopMatrix() {
+        if (mvMatrixStack.length == 0) {
+            throw "Invalid popMatrix!";
+        }
+        mvMatrix = mvMatrixStack.pop();
+    }
 
 	
 	function setMatrixUniforms() {
@@ -133,6 +148,10 @@ var gl;
         mat4.toInverseMat3(mvMatrix, normalMatrix);
         mat3.transpose(normalMatrix);
         gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
+    }
+	//перевод градусов в радианы
+	  function degToRad(degrees) {
+        return degrees * Math.PI / 180;
     }
 	
 	
@@ -176,6 +195,7 @@ var gl;
             cubeVertexIndexBuffer.numItems = obj.star.indices.length;
     }
 	
+	var rCube = 0; // поворот куба
 	
 	    function drawScene() {
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -224,16 +244,49 @@ var gl;
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
 		
 		mat4.translate(mvMatrix, [-5.0, 0.0, -3.0]);
+		// код вращения 
+		mvPushMatrix();
+        mat4.rotate(mvMatrix, degToRad(rCube), [0, 0, 1]);
+		//------
 		setMatrixUniforms();
 		gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
       //  gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
-		
+		mvPopMatrix();//возвращаем предыдущее состояние для матрици вращения
 		//рисуем вторую звезду
 		for(var i=0; i<4; i++){
+		
 		mat4.translate(mvMatrix, [2.5, 0.0, 0.0]);
+		mvPushMatrix();
+        mat4.rotate(mvMatrix, degToRad(rCube), [0, 0, 1]);
+		
 	    setMatrixUniforms();
        
 		gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+		mvPopMatrix();
+		}
+
+    }
+	
+	var lastTime = 0;
+
+    function animate() {
+        var timeNow = new Date().getTime();
+        if (lastTime != 0) {
+            var elapsed = timeNow - lastTime;
+
+           
+           // rCube -= (75 * elapsed) / 1000.0;
+		  // console.log(elapsed);
+		   rCube -= (75 * 12) / 1000.0;
+        }
+        lastTime = timeNow;
+    }
+	
+	 function tick() {
+	    if(go){
+		requestAnimFrame(tick);
+        drawScene();
+        animate();
 		
 		}
 
@@ -248,7 +301,8 @@ var gl;
         gl.clearColor(0.9, 0.9, 1.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
 
-        drawScene();
+       drawScene();
+	  // tick();
     }
 	
 
@@ -270,6 +324,45 @@ window.onload = function(){
 }
 	
 	//webGLStart();
+//обработка событий
+var go = false;
+
+var canvas = document.getElementById("canvas");
+
+var longCanv = parseFloat(getComputedStyle(canvas).width);
+
+var widthConst = 6;
+
+
+console.log("width "+ longCanv);
+
+	canvas.addEventListener("mouseover", mouseOnCanvas);
+	canvas.addEventListener("mouseout", mouseOutFromCanvas);
+	canvas.addEventListener("mousemove", mouseMoveOnCanvas);
+	
+	function mouseOnCanvas(e){
+	  
+	  go = true
+	  tick();
+	}
+	
+	function mouseOutFromCanvas(e){
+	   go = false;
+	    
+	}
+	
+	function mouseMoveOnCanvas(e){
+	
+	var mouseCoord = e.pageX - canvas.offsetLeft;
+	
+	var num = parseFloat((parseFloat(mouseCoord)/longCanv*widthConst)-(widthConst/2));
+	
+	//console.log(mouseCoord);
+	
+	gl.vertexAttrib1f(shaderProgram.CursorMouseX, num);
+	
+	}
+	
 	
 </script>
 
