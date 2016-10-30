@@ -18,7 +18,7 @@
 
 <h2>WebGl raiting stars</h3> 
 
-<canvas id="canvas" style="border: none;" width="375" height="75"></canvas>
+<canvas id="canvas" style="border: none;" width="250" height="47"></canvas>
 
 
 <!-- precision lowp - низкая точность для более высокой производительности -->
@@ -26,10 +26,11 @@
 <script id="shader-fs" type="x-shader/x-fragment">
     precision lowp float;
 	
+	varying vec4 vColor;
 	varying vec3 vLightWeighting;
     
     void main(void) {
-        vec4 FragColor = vec4(0.9, 0.9, 0.1, 1.0);
+        vec4 FragColor = vColor; 
 		
 		gl_FragColor = vec4(FragColor.rgb * vLightWeighting, FragColor.a);
     }
@@ -38,6 +39,7 @@
 <script id="shader-vs" type="x-shader/x-vertex">
     attribute vec3 aVertexPosition;
 	attribute vec3 aVertexNormal;
+	attribute vec4 CursorMouseX;
 
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
@@ -48,6 +50,8 @@
 
   uniform vec3 uLightingDirection;
   uniform vec3 uDirectionalColor;
+  
+  varying vec4 vColor;
   
   varying vec3 vLightWeighting;
 
@@ -60,6 +64,16 @@
 	              vec3 transformedNormal = uNMatrix * aVertexNormal;
             float directionalLightWeighting = max(dot(transformedNormal, uLightingDirection), 0.0);
             vLightWeighting = uAmbientColor + uDirectionalColor * directionalLightWeighting;
+			
+			if(gl_Position.x < CursorMouseX.x){
+			
+			vColor = vec4(0.9, 0.9, 0.1, 1.0);
+			}else{
+			
+			vColor = vec4(0.9, 0.9, 0.9, 1.0);
+			
+			}
+			
 
     }
 </script>
@@ -86,6 +100,9 @@ var gl;
         }
 
         gl.useProgram(shaderProgram);
+		// переменная  цвет звезд от -3(все серые) до 3 (цветные)
+		shaderProgram.CursorMouseX = gl.getAttribLocation(shaderProgram, "CursorMouseX");
+		 gl.vertexAttrib1f(shaderProgram.CursorMouseX, 0.0);
         // получаем ссылку на атрибут-вектор позиции вершин
         shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
         gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
@@ -110,6 +127,7 @@ var gl;
 	function setMatrixUniforms() {
         gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
         gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+		//console.dir(mvMatrix);
 		
 		var normalMatrix = mat3.create();
         mat4.toInverseMat3(mvMatrix, normalMatrix);
@@ -166,14 +184,14 @@ var gl;
        
         mat4.identity(mvMatrix);
         
-        mat4.translate(mvMatrix, [0.0, 0.0, -3.0]);
+      
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 		
 		  gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexNormalBuffer);
           gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, cubeVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 		
-		
+	///////////свет  и  нормали	
         gl.uniform1i(shaderProgram.useLightingUniform, true);
 		
        
@@ -202,18 +220,23 @@ var gl;
             );
         
 		
-		
+		// рендер звезд
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
+		
+		mat4.translate(mvMatrix, [-5.0, 0.0, -3.0]);
 		setMatrixUniforms();
 		gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
       //  gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
 		
-		//рисуем второй треугольник
-		/*
-		mat4.translate(mvMatrix, [3, 0.0, 0.0]);
+		//рисуем вторую звезду
+		for(var i=0; i<4; i++){
+		mat4.translate(mvMatrix, [2.5, 0.0, 0.0]);
 	    setMatrixUniforms();
-        gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
-		*/
+       
+		gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+		
+		}
+
     }
 	
 	    function webGLStart(obj) {
