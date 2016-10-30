@@ -1,7 +1,8 @@
+п»ї
 
-
-  // получает webGL контекст
+  // РїРѕР»СѓС‡Р°РµС‚ webGL РєРѕРЅС‚РµРєСЃС‚
     function initGL(canvas) {
+		var gl;
         try {
             gl = canvas.getContext("webgl");
             gl.viewportWidth = canvas.width;
@@ -10,10 +11,12 @@
         }
         if (!gl) {
             alert("Could not initialise WebGL, sorry :-(");
-        }
+        }else{
+			return gl;
+		}
     }
 	
-	// парсит шейдер из текста
+	// РїР°СЂСЃРёС‚ С€РµР№РґРµСЂ РёР· С‚РµРєСЃС‚Р°
 	    function getShader(gl, id) {
         var shaderScript = document.getElementById(id);
         if (!shaderScript) {
